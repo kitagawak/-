@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>スタジアム野球ゲーム</title>
+<title>スタジアム打撃ゲーム</title>
 
 <style>
 
@@ -13,66 +13,6 @@ text-align:center;
 background:linear-gradient(#4fa3ff,#87ceeb);
 }
 
-/* スタジアム */
-
-#stadium{
-width:900px;
-margin:30px auto;
-background:#2e7d32;
-border:6px solid white;
-border-radius:10px;
-padding-top:40px;
-position:relative;
-}
-
-/* 観客席 */
-
-#crowd{
-height:80px;
-background:repeating-linear-gradient(
-45deg,
-#555,
-#555 10px,
-#777 10px,
-#777 20px
-);
-}
-
-/* フィールド */
-
-#field{
-width:900px;
-height:300px;
-background:linear-gradient(#3fa34d,#2e8b57);
-position:relative;
-overflow:hidden;
-}
-
-/* ストライクゾーン */
-
-#zone{
-position:absolute;
-left:420px;
-top:80px;
-width:80px;
-height:140px;
-border:3px dashed yellow;
-}
-
-/* ボール */
-
-#ball{
-position:absolute;
-left:880px;
-top:150px;
-width:20px;
-height:20px;
-background:white;
-border-radius:50%;
-}
-
-/* スコアボード */
-
 #scoreboard{
 background:black;
 color:#00ff00;
@@ -80,7 +20,47 @@ font-size:26px;
 padding:10px;
 }
 
-/* ボタン */
+#stadium{
+width:900px;
+margin:20px auto;
+border:6px solid white;
+border-radius:10px;
+overflow:hidden;
+}
+
+#crowd{
+height:80px;
+background:repeating-linear-gradient(
+45deg,#555,#555 10px,#777 10px,#777 20px
+);
+}
+
+#field{
+width:900px;
+height:320px;
+background:linear-gradient(#3fa34d,#2e8b57);
+position:relative;
+overflow:hidden;
+}
+
+#zone{
+position:absolute;
+left:420px;
+top:100px;
+width:80px;
+height:120px;
+border:3px dashed yellow;
+}
+
+#ball{
+position:absolute;
+left:880px;
+top:170px;
+width:20px;
+height:20px;
+background:white;
+border-radius:50%;
+}
 
 button{
 margin-top:20px;
@@ -101,8 +81,6 @@ font-size:28px;
 margin-top:15px;
 font-weight:bold;
 }
-
-/* ホームラン文字 */
 
 .homerun{
 position:absolute;
@@ -157,24 +135,31 @@ let speed = 6;
 let points = 0;
 let swinging = false;
 
-let homerunMode = false;
-let vx = -6;
-let vy = -10;
+let flyMode = false;
+let vx = 0;
+let vy = 0;
+let gravity = 0.4;
 
 function moveBall(){
 
-if(homerunMode){
+if(flyMode){
 
-let top = parseFloat(ball.style.top || 150);
+let top = parseFloat(ball.style.top);
+let scale = parseFloat(ball.dataset.scale || 1);
 
 position += vx;
 top += vy;
-vy += 0.4;
+vy += gravity;
+
+scale -= 0.01;
 
 ball.style.left = position + "px";
 ball.style.top = top + "px";
+ball.style.transform = "scale(" + scale + ")";
 
-if(top > 350){
+ball.dataset.scale = scale;
+
+if(top > 340 || scale <= 0.2){
 resetBall();
 }
 
@@ -199,11 +184,13 @@ function resetBall(){
 
 position = 880;
 ball.style.left = position + "px";
-ball.style.top = "150px";
+ball.style.top = "170px";
+ball.style.transform = "scale(1)";
+ball.dataset.scale = 1;
 
-homerunMode = false;
+flyMode = false;
 swinging = false;
-vy = -10;
+vy = 0;
 
 }
 
@@ -221,6 +208,15 @@ text.remove();
 
 }
 
+function hitBall(power){
+
+flyMode = true;
+
+vx = -power;
+vy = -power/2;
+
+}
+
 function swing(){
 
 if(swinging) return;
@@ -234,7 +230,7 @@ if(position>430 && position<490){
 result="ホームラン！！ +4点";
 points+=4;
 
-homerunMode=true;
+hitBall(12);
 showHomerun();
 
 }
@@ -242,6 +238,8 @@ else if(position>400 && position<520){
 
 result="ヒット！ +1点";
 points+=1;
+
+hitBall(8);
 
 }
 else if(position>360 && position<560){
