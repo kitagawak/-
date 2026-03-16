@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>スタジアム打撃ゲーム</title>
+<title>リアル野球ゲーム</title>
 
 <style>
 
@@ -16,37 +16,24 @@ background:linear-gradient(#4fa3ff,#87ceeb);
 #scoreboard{
 background:black;
 color:#00ff00;
-font-size:26px;
 padding:10px;
-}
-
-#stadium{
-width:900px;
-margin:20px auto;
-border:6px solid white;
-border-radius:10px;
-overflow:hidden;
-}
-
-#crowd{
-height:80px;
-background:repeating-linear-gradient(
-45deg,#555,#555 10px,#777 10px,#777 20px
-);
+font-size:20px;
 }
 
 #field{
 width:900px;
 height:320px;
+margin:auto;
 background:linear-gradient(#3fa34d,#2e8b57);
 position:relative;
 overflow:hidden;
+border:5px solid white;
 }
 
 #zone{
 position:absolute;
 left:420px;
-top:100px;
+top:120px;
 width:80px;
 height:120px;
 border:3px dashed yellow;
@@ -56,8 +43,8 @@ border:3px dashed yellow;
 position:absolute;
 left:880px;
 top:170px;
-width:20px;
-height:20px;
+width:18px;
+height:18px;
 background:white;
 border-radius:50%;
 }
@@ -68,35 +55,40 @@ padding:15px 40px;
 font-size:20px;
 border:none;
 border-radius:10px;
-background:#ff9800;
+background:orange;
 cursor:pointer;
 }
 
-button:hover{
-background:#ffc107;
+#diamond{
+width:160px;
+height:160px;
+margin:20px auto;
+position:relative;
 }
 
-#result{
-font-size:28px;
-margin-top:15px;
-font-weight:bold;
-}
-
-.homerun{
+.base{
+width:25px;
+height:25px;
+background:white;
+transform:rotate(45deg);
 position:absolute;
-top:40%;
-left:50%;
-transform:translate(-50%,-50%);
-font-size:70px;
-color:red;
-font-weight:bold;
-animation:pop 1s ease;
 }
 
-@keyframes pop{
-0%{transform:translate(-50%,-50%) scale(0)}
-70%{transform:translate(-50%,-50%) scale(1.4)}
-100%{transform:translate(-50%,-50%) scale(1)}
+#first{right:0;top:60px;}
+#second{top:0;left:60px;}
+#third{left:0;top:60px;}
+#home{bottom:0;left:60px;background:yellow;}
+
+.runner{
+background:red;
+}
+
+#stats{
+margin-top:10px;
+}
+
+#ranking{
+margin-top:20px;
 }
 
 </style>
@@ -104,157 +96,265 @@ animation:pop 1s ease;
 
 <body>
 
-<h1>⚾ スタジアム打撃ゲーム</h1>
+<h1>⚾ リアル野球ゲーム</h1>
 
 <div id="scoreboard">
-SCORE: <span id="points">0</span>
+回: <span id="inning">1</span>　
+アウト: <span id="outs">0</span>　
+得点: <span id="score">0</span>
 </div>
-
-<div id="stadium">
-
-<div id="crowd"></div>
 
 <div id="field">
 <div id="zone"></div>
 <div id="ball"></div>
 </div>
 
+<button onclick="swing()">バットを振る</button>
+
+<div id="result">プレイボール！</div>
+
+<div id="diamond">
+<div class="base" id="first"></div>
+<div class="base" id="second"></div>
+<div class="base" id="third"></div>
+<div class="base" id="home"></div>
 </div>
 
-<button onclick="swing()">バットを振る！</button>
+<div id="stats">
+打数: <span id="atbat">0</span>　
+安打: <span id="hit">0</span>　
+HR: <span id="hr">0</span>　
+打率: <span id="avg">0.000</span>
+</div>
 
-<div id="result">タイミングよく打て！</div>
+<div id="ranking">
+<h3>ホームランランキング</h3>
+<ol id="hrlist"></ol>
+</div>
 
 <script>
 
-let ball = document.getElementById("ball");
-let field = document.getElementById("field");
+let ball=document.getElementById("ball")
 
-let position = 880;
-let speed = 6;
-let points = 0;
-let swinging = false;
+let position=880
+let speed=6
+let pitch="fast"
+let swingLock=false
 
-let flyMode = false;
-let vx = 0;
-let vy = 0;
-let gravity = 0.4;
+let inning=1
+let outs=0
+let score=0
+
+let first=false
+let second=false
+let third=false
+
+let atbat=0
+let hit=0
+let hr=0
+
+let hrRanking=[]
+
+let audio=new Audio("data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEA")
 
 function moveBall(){
 
-if(flyMode){
-
-let top = parseFloat(ball.style.top);
-let scale = parseFloat(ball.dataset.scale || 1);
-
-position += vx;
-top += vy;
-vy += gravity;
-
-scale -= 0.01;
-
-ball.style.left = position + "px";
-ball.style.top = top + "px";
-ball.style.transform = "scale(" + scale + ")";
-
-ball.dataset.scale = scale;
-
-if(top > 340 || scale <= 0.2){
-resetBall();
+if(pitch=="fast"){
+position-=9
+}
+else if(pitch=="curve"){
+position-=6
+ball.style.top=170+Math.sin(position/30)*40+"px"
+}
+else if(pitch=="fork"){
+position-=7
+ball.style.top=170+(position>500?0:60)+"px"
 }
 
-}else{
+ball.style.left=position+"px"
 
-position -= speed;
-
-if(position < -20){
-resetBall();
+if(position<-20){
+resetBall()
 }
 
-ball.style.left = position + "px";
+requestAnimationFrame(moveBall)
 
 }
 
-requestAnimationFrame(moveBall);
-}
-
-moveBall();
+moveBall()
 
 function resetBall(){
 
-position = 880;
-ball.style.left = position + "px";
-ball.style.top = "170px";
-ball.style.transform = "scale(1)";
-ball.dataset.scale = 1;
+position=880
+ball.style.left=position+"px"
+ball.style.top="170px"
 
-flyMode = false;
-swinging = false;
-vy = 0;
+pitch=randomPitch()
+swingLock=false
 
 }
 
-function showHomerun(){
+function randomPitch(){
 
-let text = document.createElement("div");
-text.className = "homerun";
-text.textContent = "HOME RUN!!";
+let r=Math.random()
 
-field.appendChild(text);
-
-setTimeout(()=>{
-text.remove();
-},1000);
-
-}
-
-function hitBall(power){
-
-flyMode = true;
-
-vx = -power;
-vy = -power/2;
+if(r<0.4)return"fast"
+if(r<0.7)return"curve"
+return"fork"
 
 }
 
 function swing(){
 
-if(swinging) return;
+if(swingLock)return
 
-swinging = true;
+swingLock=true
 
-let result="";
+atbat++
+
+let result=""
 
 if(position>430 && position<490){
 
-result="ホームラン！！ +4点";
-points+=4;
+let r=Math.random()
 
-hitBall(12);
-showHomerun();
+if(r<0.15){
+
+result="ホームラン！"
+
+let runs=1+first+second+third
+score+=runs
+
+first=false
+second=false
+third=false
+
+hr++
+hit++
+
+hrRanking.push(hr)
+
+showHR()
 
 }
-else if(position>400 && position<520){
+else if(r<0.6){
 
-result="ヒット！ +1点";
-points+=1;
+result="ヒット！"
 
-hitBall(8);
+hit++
 
-}
-else if(position>360 && position<560){
-
-result="ファール";
+advance()
 
 }
 else{
 
-result="空振り！";
+result="フライアウト"
+
+outs++
 
 }
 
-document.getElementById("result").textContent=result;
-document.getElementById("points").textContent=points;
+}
+else{
+
+result="空振り！"
+
+outs++
+
+}
+
+if(outs>=3){
+
+outs=0
+first=false
+second=false
+third=false
+
+inning++
+
+}
+
+updateBases()
+updateStats()
+
+document.getElementById("result").textContent=result
+document.getElementById("score").textContent=score
+document.getElementById("outs").textContent=outs
+document.getElementById("inning").textContent=inning
+
+if(inning>9){
+
+alert("試合終了！ 得点："+score)
+location.reload()
+
+}
+
+}
+
+function advance(){
+
+if(third)score++
+third=second
+second=first
+first=true
+
+}
+
+function updateBases(){
+
+document.getElementById("first").classList.toggle("runner",first)
+document.getElementById("second").classList.toggle("runner",second)
+document.getElementById("third").classList.toggle("runner",third)
+
+}
+
+function updateStats(){
+
+document.getElementById("atbat").textContent=atbat
+document.getElementById("hit").textContent=hit
+document.getElementById("hr").textContent=hr
+
+let avg=(hit/atbat)||0
+
+document.getElementById("avg").textContent=avg.toFixed(3)
+
+updateRanking()
+
+}
+
+function updateRanking(){
+
+let list=document.getElementById("hrlist")
+list.innerHTML=""
+
+hrRanking.sort((a,b)=>b-a)
+
+hrRanking.slice(0,5).forEach((v,i)=>{
+
+let li=document.createElement("li")
+li.textContent=(i+1)+"位 "+v+" HR"
+list.appendChild(li)
+
+})
+
+}
+
+function showHR(){
+
+let text=document.createElement("div")
+
+text.style.position="absolute"
+text.style.top="40%"
+text.style.left="50%"
+text.style.transform="translate(-50%,-50%)"
+text.style.fontSize="60px"
+text.style.color="red"
+text.style.fontWeight="bold"
+text.textContent="HOME RUN!"
+
+document.getElementById("field").appendChild(text)
+
+setTimeout(()=>text.remove(),1200)
 
 }
 
