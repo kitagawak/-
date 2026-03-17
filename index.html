@@ -2,26 +2,23 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>リアル人生ゲーム（ルーレット）</title>
+<title>リアル人生ゲーム（分岐・演出版）</title>
 <style>
-body{font-family:sans-serif;text-align:center;background:#f4f4f4;}
+body{font-family:sans-serif;text-align:center;background:#f0f0f0;}
 h1{margin-top:20px;}
 #board{width:1000px;margin:20px auto;display:grid;grid-template-columns:repeat(10,90px);gap:5px;}
-.cell{width:90px;height:90px;background:#ddd;border:2px solid #888;display:flex;align-items:center;justify-content:center;font-size:12px;position:relative;}
-.goal{background:gold;}
-.choice{background:#ffec99;}
+.cell{width:90px;height:90px;border:2px solid #888;display:flex;align-items:center;justify-content:center;font-size:12px;position:relative;flex-direction:column;}
 .player{width:24px;height:24px;background:red;border-radius:50%;position:absolute;bottom:4px;}
 #info{font-size:16px;margin-top:10px;}
-button{padding:12px 30px;font-size:18px;margin-top:10px;cursor:pointer;}
 #log{margin-top:15px;font-weight:bold;}
 #roulette{margin-top:20px;width:200px;height:200px;border-radius:50%;border:8px solid #444;position:relative;margin-left:auto;margin-right:auto;}
 #pointer{width:10px;height:100px;background:red;position:absolute;top:-50px;left:95px;}
-#spinBtn{margin-top:10px;padding:10px 30px;font-size:16px;}
+#spinBtn{margin-top:10px;padding:10px 30px;font-size:16px;cursor:pointer;}
 </style>
 </head>
 <body>
 
-<h1>🎡 リアル人生ゲーム（ルーレット版）</h1>
+<h1>🎡 リアル人生ゲーム（分岐・演出版）</h1>
 
 <div id="info">
 位置: <span id="pos">0</span><br>
@@ -46,15 +43,27 @@ button{padding:12px 30px;font-size:18px;margin-top:10px;cursor:pointer;}
 
 <script>
 // --- 基本設定 ---
-const board=document.getElementById("board")
-const size=80
+const board=document.getElementById("board");
+const size=80;
 let position=0,money=10000,job="なし",salary=0,married=false,kids=0,house=false,car=false,loan=0;
 
+// マス情報（アイコン・色・分岐）
+const cells=[];
 for(let i=0;i<size;i++){
+  let type="normal";
+  let icon="";
+  if(i==size-1){type="goal";icon="🏁";}
+  else if([10,30,50,70].includes(i)){type="choice";icon="⛳";}
+  else if([5,15,25,35,45,55,65,75].includes(i)){type="event";icon="🎲";}
+  else{type="normal";icon="";}
+  cells.push({type,icon});
   let cell=document.createElement("div");
   cell.className="cell";
   cell.id="cell"+i;
-  if(i==size-1){cell.classList.add("goal");cell.textContent="GOAL";}
+  if(type=="goal") cell.style.background="gold";
+  else if(type=="choice") cell.style.background="#ffec99";
+  else if(type=="event") cell.style.background="#9ad0ff";
+  cell.innerHTML=icon+"<br>"+i;
   board.appendChild(cell);
 }
 updatePlayer();
@@ -88,10 +97,9 @@ function spinRoulette(){
   if(spinning) return;
   spinning=true;
   const pointer=document.getElementById("pointer");
-  let spins=3+Math.floor(Math.random()*3); // 3~5回転
-  let steps=1+Math.floor(Math.random()*6); // 最終進むマス数
-  let angle=0;
-  let total=spins*360 + steps*(360/6); // 6分割
+  let spins=3+Math.floor(Math.random()*3);
+  let steps=1+Math.floor(Math.random()*6);
+  let total=spins*360 + steps*(360/6);
   let duration=2000;
   pointer.style.transition=`transform ${duration}ms ease-out`;
   pointer.style.transform=`rotate(${total}deg)`;
@@ -105,12 +113,19 @@ function spinRoulette(){
 function movePlayer(steps){
   position+=steps;
   if(position>=size-1) position=size-1;
-  // ルート分岐
-  if([10,30,50,70].includes(position)){ position+=Math.random()<0.5?1:2; if(position>=size-1) position=size-1; }
+
+  // 分岐マス処理
+  if(cells[position].type=="choice"){
+    let dir=Math.random()<0.5?1:2;
+    position+=dir;
+    if(position>=size-1) position=size-1;
+  }
+
   let event=events[Math.floor(Math.random()*events.length)];
   document.getElementById("log").textContent="🎡 "+steps+"マス進んだ → "+event();
   updatePlayer();
   updateInfo();
+
   if(position==size-1){
     setTimeout(()=>{ alert("🏁 ゴール！資産 ¥"+money+" 借金 ¥"+loan); location.reload(); },400);
   }
