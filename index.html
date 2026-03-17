@@ -2,131 +2,124 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>パワプロ風ブラウザ野球</title>
+<title>ミニパワプロ 打席シーン</title>
 <style>
-body{font-family:sans-serif;text-align:center;background:#87ceeb;color:#000;}
-#field{width:600px;height:600px;background:#228B22;margin:20px auto;position:relative;border-radius:50%;}
-#pitcher{width:20px;height:20px;background:white;border-radius:50%;position:absolute;top:50px;left:290px;}
-#ball{width:15px;height:15px;background:white;border-radius:50%;position:absolute;top:50px;left:292px;display:none;}
-#batter{width:20px;height:40px;background:red;position:absolute;bottom:50px;left:290px;}
-#log{margin-top:10px;height:40px;}
-button{padding:10px 20px;margin:10px;}
+  body {
+    font-family: sans-serif;
+    text-align: center;
+    background: #cce7ff;
+    margin: 0;
+    padding: 0;
+  }
+  h1 { margin-top: 20px; }
+  #gameArea {
+    position: relative;
+    width: 300px;
+    height: 400px;
+    margin: 20px auto;
+    border: 2px solid #333;
+    background: #87ceeb;
+    overflow: hidden;
+    border-radius: 10px;
+  }
+  #ball {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    background: red;
+    border-radius: 50%;
+    bottom: 20px;
+    left: 140px;
+  }
+  #bat {
+    position: absolute;
+    width: 80px;
+    height: 20px;
+    background: brown;
+    bottom: 0;
+    left: 110px;
+    transform-origin: left center;
+  }
+  button {
+    padding: 10px 20px;
+    font-size: 16px;
+    margin: 10px;
+  }
+  #result {
+    font-size: 18px;
+    font-weight: bold;
+    margin-top: 10px;
+    height: 24px;
+  }
 </style>
 </head>
 <body>
-<h1>⚾ パワプロ風野球ゲーム</h1>
-<div id="field">
-<div id="pitcher"></div>
-<div id="ball"></div>
-<div id="batter"></div>
+<h1>ミニパワプロ 打席シーン</h1>
+<div id="gameArea">
+  <div id="ball"></div>
+  <div id="bat"></div>
 </div>
-
-<div id="info">
-イニング: <span id="inning">1</span>回<br>
-アウト: <span id="outs">0</span>　
-ランナー: <span id="bases">なし</span><br>
-得点: <span id="score">0</span>
-</div>
-
-<button id="pitchBtn">投球</button>
-<button id="swingBtn" disabled>スイング</button>
-<div id="log"></div>
+<button id="swingBtn">スイング！</button>
+<div id="result"></div>
 
 <script>
-let inning=1,outs=0,score=0,bases=[0,0,0]; // 一塁・二塁・三塁
-let ball=document.getElementById("ball");
-let log=document.getElementById("log");
-let swingAllowed=false;
+const ball = document.getElementById("ball");
+const bat = document.getElementById("bat");
+const swingBtn = document.getElementById("swingBtn");
+const resultDiv = document.getElementById("result");
 
-// 投球ボタン
-document.getElementById("pitchBtn").onclick=()=>{
-    if(swingAllowed) return;
-    ball.style.top="50px";
-    ball.style.left="292px";
-    ball.style.display="block";
-    document.getElementById("swingBtn").disabled=false;
-    swingAllowed=true;
-    log.textContent="⚾ ボールが来る！タイミングでスイング！";
-
-    let ballSpeed = 1500 + Math.random()*1000; // ms
-    let ballCurve = (Math.random()-0.5)*100; // 左右変化
-    ball.style.transition = `top ${ballSpeed}ms linear, left ${ballSpeed}ms linear`;
-    setTimeout(()=>{
-        ball.style.top="500px";
-        ball.style.left=292+ballCurve+"px";
-        setTimeout(()=>{
-            if(swingAllowed){ // 空振り
-                log.textContent="⚾ 空振り！アウト！";
-                outs++;
-                updateInfo();
-                nextPlay();
-            }
-        },ballSpeed);
-    },50);
+// 選手能力
+const player = {
+  power: 70
 };
 
-// スイングボタン
-document.getElementById("swingBtn").onclick=()=>{
-    if(!swingAllowed) return;
-    swingAllowed=false;
-    document.getElementById("swingBtn").disabled=true;
-    let hitChance=Math.random();
-    if(hitChance<0.3){
-        log.textContent="💥 ヒット！ランナー進塁！";
-        advanceRunners(1);
-    }else if(hitChance<0.4){
-        log.textContent="💥 ホームラン！全員帰塁！";
-        advanceRunners(4);
-    }else{
-        log.textContent="✖ ゴロアウト！";
-        outs++;
+// 投球アニメーション
+function pitchBall() {
+  let pos = 0; // 上から下に移動
+  resultDiv.textContent = "";
+  ball.style.bottom = "350px"; // 上からスタート
+  const interval = setInterval(() => {
+    pos += 5;
+    ball.style.bottom = 350 - pos + "px";
+    if (pos >= 350) {
+      clearInterval(interval);
+      resultDiv.textContent = "アウト…😢";
     }
-    updateInfo();
-    nextPlay();
-};
-
-// ランナー進塁
-function advanceRunners(hit){
-    for(let i=2;i>=0;i--){
-        if(bases[i]){
-            let nextBase=i+hit;
-            if(nextBase>2){ score++; }
-            else{ bases[nextBase]=1; }
-            bases[i]=0;
-        }
-    }
-    if(hit==4) score++; // バッターもホーム
-    else bases[hit-1]=1; // バッター進塁
+  }, 20);
+  return interval;
 }
 
-// プレイ後
-function nextPlay(){
-    ball.style.display="none";
-    if(outs>=3){
-        outs=0;
-        bases=[0,0,0];
-        inning++;
-        log.textContent+=" イニング交代！";
-        if(inning>9){
-            alert("試合終了！スコア: "+score);
-            location.reload();
-        }
+// スイング判定
+function swingBat() {
+  // バットを回すアニメーション
+  let angle = 0;
+  const swingInterval = setInterval(() => {
+    angle += 20;
+    bat.style.transform = `rotate(${angle}deg)`;
+    if (angle >= 90) {
+      clearInterval(swingInterval);
+      bat.style.transform = "rotate(0deg)";
+      // 打撃判定
+      const hitChance = player.power + Math.floor(Math.random() * 50);
+      if (hitChance > 80) {
+        resultDiv.textContent = "ホームラン！🔥";
+      } else if (hitChance > 50) {
+        resultDiv.textContent = "ヒット！⚾";
+      } else {
+        resultDiv.textContent = "空振り…😢";
+      }
     }
-    updateInfo();
+  }, 30);
 }
 
-// 情報更新
-function updateInfo(){
-    document.getElementById("inning").textContent=inning;
-    document.getElementById("outs").textContent=outs;
-    let baseNames=[];
-    if(bases[0]) baseNames.push("一塁");
-    if(bases[1]) baseNames.push("二塁");
-    if(bases[2]) baseNames.push("三塁");
-    document.getElementById("bases").textContent=baseNames.length>0?baseNames.join(","):"なし";
-    document.getElementById("score").textContent=score;
-}
+// ボタン押したら投球＋スイング
+swingBtn.addEventListener("click", () => {
+  const ballInterval = pitchBall();
+  setTimeout(() => {
+    clearInterval(ballInterval); // ボールを止める
+    swingBat();
+  }, 1000); // 1秒後にスイング
+});
 </script>
 </body>
 </html>
-🎯 このゲームの特徴
