@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>ミニパワプロ 打席シーン</title>
+<title>本格ミニパワプロ</title>
 <style>
   body {
     font-family: sans-serif;
@@ -54,7 +54,7 @@
 </style>
 </head>
 <body>
-<h1>ミニパワプロ 打席シーン</h1>
+<h1>本格ミニパワプロ</h1>
 <div id="gameArea">
   <div id="ball"></div>
   <div id="bat"></div>
@@ -68,30 +68,40 @@ const bat = document.getElementById("bat");
 const swingBtn = document.getElementById("swingBtn");
 const resultDiv = document.getElementById("result");
 
-// 選手能力
-const player = {
-  power: 70
-};
+const player = { power: 70 };
+let ballInterval;
+let ballX = 140, ballY = 350;
+let swingPressed = false;
 
-// 投球アニメーション
+// 投球アニメーション（斜めに移動）
 function pitchBall() {
-  let pos = 0; // 上から下に移動
+  ballX = Math.random() * 200 + 50; // 横軌道をランダム
+  ballY = 350;
+  swingPressed = false;
   resultDiv.textContent = "";
-  ball.style.bottom = "350px"; // 上からスタート
-  const interval = setInterval(() => {
-    pos += 5;
-    ball.style.bottom = 350 - pos + "px";
-    if (pos >= 350) {
-      clearInterval(interval);
-      resultDiv.textContent = "アウト…😢";
+  ball.style.left = ballX + "px";
+  ball.style.bottom = ballY + "px";
+
+  ballInterval = setInterval(() => {
+    ballY -= 5; // 上から下に移動
+    // 少し横に揺らす軌道
+    ballX += Math.sin(ballY / 30) * 2;
+    ball.style.left = ballX + "px";
+    ball.style.bottom = ballY + "px";
+
+    // ボールが下まで行ったらアウト
+    if (ballY <= 20) {
+      clearInterval(ballInterval);
+      if (!swingPressed) {
+        resultDiv.textContent = "アウト…😢";
+      }
     }
   }, 20);
-  return interval;
 }
 
 // スイング判定
 function swingBat() {
-  // バットを回すアニメーション
+  swingPressed = true;
   let angle = 0;
   const swingInterval = setInterval(() => {
     angle += 20;
@@ -99,27 +109,31 @@ function swingBat() {
     if (angle >= 90) {
       clearInterval(swingInterval);
       bat.style.transform = "rotate(0deg)";
-      // 打撃判定
-      const hitChance = player.power + Math.floor(Math.random() * 50);
-      if (hitChance > 80) {
-        resultDiv.textContent = "ホームラン！🔥";
-      } else if (hitChance > 50) {
-        resultDiv.textContent = "ヒット！⚾";
+
+      // ヒット判定（ボールのY座標が150～220の範囲なら当たり判定）
+      if (ballY >= 150 && ballY <= 220) {
+        const hitChance = player.power + Math.floor(Math.random() * 50);
+        if (hitChance > 80) {
+          resultDiv.textContent = "ホームラン！🔥";
+        } else {
+          resultDiv.textContent = "ヒット！⚾";
+        }
       } else {
         resultDiv.textContent = "空振り…😢";
       }
+
+      clearInterval(ballInterval); // ボールを止める
     }
   }, 30);
 }
 
-// ボタン押したら投球＋スイング
+// ボタン押したら投球＋スイング判定
 swingBtn.addEventListener("click", () => {
-  const ballInterval = pitchBall();
-  setTimeout(() => {
-    clearInterval(ballInterval); // ボールを止める
-    swingBat();
-  }, 1000); // 1秒後にスイング
+  swingBat();
 });
+
+// 自動で投球スタート
+pitchBall();
 </script>
 </body>
 </html>
