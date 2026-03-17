@@ -2,23 +2,19 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>人生ゲームすごろく</title>
+<title>リアル人生ゲーム</title>
 
 <style>
 
 body{
 font-family:sans-serif;
 text-align:center;
-background:#f0f0f0;
-}
-
-h1{
-margin-top:20px;
+background:#f4f4f4;
 }
 
 #board{
 width:1000px;
-margin:30px auto;
+margin:20px auto;
 display:grid;
 grid-template-columns:repeat(10,90px);
 gap:5px;
@@ -28,11 +24,11 @@ gap:5px;
 width:90px;
 height:90px;
 background:#ddd;
-border:2px solid #999;
+border:2px solid #888;
 display:flex;
 align-items:center;
 justify-content:center;
-font-size:14px;
+font-size:12px;
 position:relative;
 }
 
@@ -50,20 +46,18 @@ bottom:4px;
 }
 
 #info{
-font-size:20px;
-margin-top:20px;
+font-size:18px;
+margin-top:10px;
 }
 
 button{
-padding:12px 35px;
+padding:12px 30px;
 font-size:18px;
 margin-top:10px;
-cursor:pointer;
 }
 
-#result{
+#log{
 margin-top:15px;
-font-size:18px;
 font-weight:bold;
 }
 
@@ -72,16 +66,29 @@ font-weight:bold;
 
 <body>
 
-<h1>🎲 人生ゲームすごろく（80マス）</h1>
+<h1>🎲 リアル人生ゲーム</h1>
 
 <div id="info">
-位置: <span id="pos">0</span>　
-所持金: ¥<span id="money">10000</span>
+
+位置: <span id="pos">0</span><br>
+
+お金: ¥<span id="money">10000</span><br>
+
+職業: <span id="job">なし</span><br>
+
+給料: ¥<span id="salary">0</span><br>
+
+結婚: <span id="married">していない</span><br>
+
+子供: <span id="kids">0</span><br>
+
+家: <span id="house">なし</span>
+
 </div>
 
 <button onclick="rollDice()">サイコロを振る</button>
 
-<div id="result"></div>
+<div id="log"></div>
 
 <div id="board"></div>
 
@@ -93,6 +100,11 @@ const size=80
 
 let position=0
 let money=10000
+let job="なし"
+let salary=0
+let married=false
+let kids=0
+let house=false
 
 for(let i=0;i<size;i++){
 
@@ -114,45 +126,114 @@ board.appendChild(cell)
 
 updatePlayer()
 
-const events=[
+const jobs=[
 
-{t:"給料日！+5000円",m:5000},
-{t:"宝くじ当選！+10000円",m:10000},
-{t:"臨時収入！+2000円",m:2000},
-{t:"アルバイト成功 +3000円",m:3000},
-{t:"お年玉 +4000円",m:4000},
-
-{t:"税金支払い -4000円",m:-4000},
-{t:"スマホ修理 -3000円",m:-3000},
-{t:"病院代 -2000円",m:-2000},
-{t:"事故修理 -5000円",m:-5000},
-{t:"買い物しすぎ -1500円",m:-1500},
-
-{t:"友達と遊んだ -1000円",m:-1000},
-{t:"ゲーム購入 -2500円",m:-2500},
-{t:"ボーナス +8000円",m:8000},
-{t:"投資成功 +7000円",m:7000},
-{t:"投資失敗 -6000円",m:-6000},
-
-{t:"旅行に行った -4000円",m:-4000},
-{t:"プレゼント +2000円",m:2000},
-{t:"財布を落とした -3500円",m:-3500},
-{t:"懸賞当選 +6000円",m:6000},
-{t:"交通違反 -3000円",m:-3000},
-
-{t:"副業成功 +9000円",m:9000},
-{t:"家電購入 -4500円",m:-4500},
-{t:"昇進ボーナス +12000円",m:12000},
-{t:"引っ越し -7000円",m:-7000},
-{t:"節約成功 +1500円",m:1500}
+{name:"会社員",salary:3000},
+{name:"医者",salary:8000},
+{name:"エンジニア",salary:5000},
+{name:"スポーツ選手",salary:10000},
+{name:"YouTuber",salary:7000}
 
 ]
 
-function randomEvent(){
+const events=[
 
-return events[Math.floor(Math.random()*events.length)]
+function(){
+
+let j=jobs[Math.floor(Math.random()*jobs.length)]
+
+job=j.name
+salary=j.salary
+
+return "💼 就職した → "+job+" (給料 "+salary+")"
+
+},
+
+function(){
+
+money+=salary
+
+return "💰 給料日！ +"+salary
+
+},
+
+function(){
+
+if(!married){
+
+married=true
+return "💍 結婚した！"
 
 }
+
+return "特に何もなかった"
+
+},
+
+function(){
+
+if(married){
+
+kids++
+return "👶 子供が生まれた！"
+
+}
+
+return "平和な一日"
+
+},
+
+function(){
+
+if(!house && money>=20000){
+
+money-=20000
+house=true
+
+return "🏠 家を購入 -20000"
+
+}
+
+return "家を見るだけだった"
+
+},
+
+function(){
+
+let gain=2000+Math.floor(Math.random()*5000)
+
+money+=gain
+
+return "🎁 臨時収入 +"+gain
+
+},
+
+function(){
+
+let loss=1000+Math.floor(Math.random()*4000)
+
+money-=loss
+
+return "💸 出費 -"+loss
+
+},
+
+function(){
+
+let lottery=Math.random()
+
+if(lottery<0.2){
+
+money+=20000
+return "🎰 宝くじ大当たり +20000"
+
+}
+
+return "宝くじは外れ"
+
+}
+
+]
 
 function rollDice(){
 
@@ -164,23 +245,24 @@ if(position>=size-1){
 position=size-1
 }
 
-let e=randomEvent()
+let event=events[Math.floor(Math.random()*events.length)]
 
-money+=e.m
-
-let text="🎲 "+dice+"マス進んだ → "+e.t
+let text="🎲 "+dice+"マス進んだ → "+event()
 
 updatePlayer()
 
-document.getElementById("pos").textContent=position
-document.getElementById("money").textContent=money
-document.getElementById("result").textContent=text
+updateInfo()
+
+document.getElementById("log").textContent=text
 
 if(position==size-1){
 
 setTimeout(()=>{
-alert("ゴール！最終所持金 ¥"+money)
+
+alert("ゴール！資産 ¥"+money)
+
 location.reload()
+
 },400)
 
 }
@@ -192,9 +274,22 @@ function updatePlayer(){
 document.querySelectorAll(".player").forEach(p=>p.remove())
 
 let p=document.createElement("div")
+
 p.className="player"
 
 document.getElementById("cell"+position).appendChild(p)
+
+}
+
+function updateInfo(){
+
+document.getElementById("pos").textContent=position
+document.getElementById("money").textContent=money
+document.getElementById("job").textContent=job
+document.getElementById("salary").textContent=salary
+document.getElementById("married").textContent=married?"している":"していない"
+document.getElementById("kids").textContent=kids
+document.getElementById("house").textContent=house?"あり":"なし"
 
 }
 
