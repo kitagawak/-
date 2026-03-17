@@ -2,14 +2,14 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>すごろくゲーム</title>
+<title>人生ゲームすごろく</title>
 
 <style>
 
 body{
 font-family:sans-serif;
 text-align:center;
-background:#f5f5f5;
+background:#f0f0f0;
 }
 
 h1{
@@ -17,40 +17,36 @@ margin-top:20px;
 }
 
 #board{
-width:660px;
+width:1000px;
 margin:30px auto;
 display:grid;
-grid-template-columns:repeat(11,60px);
+grid-template-columns:repeat(10,90px);
 gap:5px;
 }
 
 .cell{
-width:60px;
-height:60px;
+width:90px;
+height:90px;
 background:#ddd;
-border:2px solid #aaa;
+border:2px solid #999;
 display:flex;
 align-items:center;
 justify-content:center;
-font-size:12px;
+font-size:14px;
 position:relative;
-}
-
-.player{
-width:20px;
-height:20px;
-background:red;
-border-radius:50%;
-position:absolute;
-bottom:2px;
 }
 
 .goal{
 background:gold;
 }
 
-.event{
-background:#9ad0ff;
+.player{
+width:24px;
+height:24px;
+background:red;
+border-radius:50%;
+position:absolute;
+bottom:4px;
 }
 
 #info{
@@ -59,9 +55,16 @@ margin-top:20px;
 }
 
 button{
-padding:10px 30px;
+padding:12px 35px;
 font-size:18px;
 margin-top:10px;
+cursor:pointer;
+}
+
+#result{
+margin-top:15px;
+font-size:18px;
+font-weight:bold;
 }
 
 </style>
@@ -69,11 +72,11 @@ margin-top:10px;
 
 <body>
 
-<h1>🎲 人生ゲーム風すごろく</h1>
+<h1>🎲 人生ゲームすごろく（80マス）</h1>
 
 <div id="info">
 位置: <span id="pos">0</span>　
-お金: ¥<span id="money">1000</span>
+所持金: ¥<span id="money">10000</span>
 </div>
 
 <button onclick="rollDice()">サイコロを振る</button>
@@ -86,19 +89,10 @@ margin-top:10px;
 
 const board=document.getElementById("board")
 
-const size=20
+const size=80
 
 let position=0
-let money=1000
-
-let events={
-3:-200,
-5:300,
-8:-500,
-10:500,
-14:-300,
-17:1000
-}
+let money=10000
 
 for(let i=0;i<size;i++){
 
@@ -110,10 +104,6 @@ if(i==size-1){
 cell.classList.add("goal")
 cell.textContent="GOAL"
 }
-else if(events[i]){
-cell.classList.add("event")
-cell.textContent="EVENT"
-}
 else{
 cell.textContent=i
 }
@@ -123,6 +113,46 @@ board.appendChild(cell)
 }
 
 updatePlayer()
+
+const events=[
+
+{t:"給料日！+5000円",m:5000},
+{t:"宝くじ当選！+10000円",m:10000},
+{t:"臨時収入！+2000円",m:2000},
+{t:"アルバイト成功 +3000円",m:3000},
+{t:"お年玉 +4000円",m:4000},
+
+{t:"税金支払い -4000円",m:-4000},
+{t:"スマホ修理 -3000円",m:-3000},
+{t:"病院代 -2000円",m:-2000},
+{t:"事故修理 -5000円",m:-5000},
+{t:"買い物しすぎ -1500円",m:-1500},
+
+{t:"友達と遊んだ -1000円",m:-1000},
+{t:"ゲーム購入 -2500円",m:-2500},
+{t:"ボーナス +8000円",m:8000},
+{t:"投資成功 +7000円",m:7000},
+{t:"投資失敗 -6000円",m:-6000},
+
+{t:"旅行に行った -4000円",m:-4000},
+{t:"プレゼント +2000円",m:2000},
+{t:"財布を落とした -3500円",m:-3500},
+{t:"懸賞当選 +6000円",m:6000},
+{t:"交通違反 -3000円",m:-3000},
+
+{t:"副業成功 +9000円",m:9000},
+{t:"家電購入 -4500円",m:-4500},
+{t:"昇進ボーナス +12000円",m:12000},
+{t:"引っ越し -7000円",m:-7000},
+{t:"節約成功 +1500円",m:1500}
+
+]
+
+function randomEvent(){
+
+return events[Math.floor(Math.random()*events.length)]
+
+}
 
 function rollDice(){
 
@@ -134,34 +164,24 @@ if(position>=size-1){
 position=size-1
 }
 
-let message="サイコロ: "+dice
+let e=randomEvent()
 
-if(events[position]){
+money+=e.m
 
-let change=events[position]
-money+=change
-
-if(change>0){
-message+=" / ボーナス +"+change
-}else{
-message+=" / 支払い "+change
-}
-
-}
+let text="🎲 "+dice+"マス進んだ → "+e.t
 
 updatePlayer()
 
-document.getElementById("result").textContent=message
-
 document.getElementById("pos").textContent=position
 document.getElementById("money").textContent=money
+document.getElementById("result").textContent=text
 
 if(position==size-1){
 
 setTimeout(()=>{
 alert("ゴール！最終所持金 ¥"+money)
 location.reload()
-},300)
+},400)
 
 }
 
