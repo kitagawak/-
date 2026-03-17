@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>リアル人生ゲーム（分岐・演出版）</title>
+<title>リアル人生ゲーム（分岐選択版）</title>
 <style>
 body{font-family:sans-serif;text-align:center;background:#f0f0f0;}
 h1{margin-top:20px;}
@@ -14,11 +14,12 @@ h1{margin-top:20px;}
 #roulette{margin-top:20px;width:200px;height:200px;border-radius:50%;border:8px solid #444;position:relative;margin-left:auto;margin-right:auto;}
 #pointer{width:10px;height:100px;background:red;position:absolute;top:-50px;left:95px;}
 #spinBtn{margin-top:10px;padding:10px 30px;font-size:16px;cursor:pointer;}
+.choiceBtn{padding:5px 10px;margin:3px;cursor:pointer;}
 </style>
 </head>
 <body>
 
-<h1>🎡 リアル人生ゲーム（分岐・演出版）</h1>
+<h1>🎡 リアル人生ゲーム（分岐選択版）</h1>
 
 <div id="info">
 位置: <span id="pos">0</span><br>
@@ -37,17 +38,16 @@ h1{margin-top:20px;}
 </div>
 <button id="spinBtn" onclick="spinRoulette()">ルーレットを回す</button>
 
+<div id="choiceArea"></div>
 <div id="log"></div>
-
 <div id="board"></div>
 
 <script>
-// --- 基本設定 ---
 const board=document.getElementById("board");
 const size=80;
 let position=0,money=10000,job="なし",salary=0,married=false,kids=0,house=false,car=false,loan=0;
 
-// マス情報（アイコン・色・分岐）
+// マス情報
 const cells=[];
 for(let i=0;i<size;i++){
   let type="normal";
@@ -55,7 +55,6 @@ for(let i=0;i<size;i++){
   if(i==size-1){type="goal";icon="🏁";}
   else if([10,30,50,70].includes(i)){type="choice";icon="⛳";}
   else if([5,15,25,35,45,55,65,75].includes(i)){type="event";icon="🎲";}
-  else{type="normal";icon="";}
   cells.push({type,icon});
   let cell=document.createElement("div");
   cell.className="cell";
@@ -68,7 +67,7 @@ for(let i=0;i<size;i++){
 }
 updatePlayer();
 
-// --- 職業 ---
+// 職業
 const jobs=[
 {name:"会社員",salary:3000},
 {name:"医者",salary:8000},
@@ -77,13 +76,13 @@ const jobs=[
 {name:"YouTuber",salary:7000}
 ];
 
-// --- イベント ---
+// イベント
 const events=[
-function(){if(job==="なし"){let j=jobs[Math.floor(Math.random()*jobs.length)];job=j.name; salary=j.salary; return "💼 就職した → "+job+" (給料 "+salary+")";} return "今日は平和";},
+function(){if(job==="なし"){let j=jobs[Math.floor(Math.random()*jobs.length)];job=j.name; salary=j.salary; return "💼 就職した → "+job+" (給料 "+salary+")";} return "平和な一日";},
 function(){money+=salary; return "💰 給料日 +"+salary;},
 function(){if(!married){married=true; return "💍 結婚した！";} return "平和な一日";},
 function(){if(married){kids++; return "👶 子供が生まれた！";} return "特に何もなし";},
-function(){if(!house && money>=20000){money-=20000; house=true; return "🏠 家を購入 -20000";} return "家を見ただけ";},
+function(){if(!house && money>=20000){money-=20000; house=true; return "🏠 家を購入 -20000";} return "家を見るだけ";},
 function(){if(!car && money>=10000){money-=10000; car=true; return "🚗 車を購入 -10000";} return "車を見るだけ";},
 function(){let gain=2000+Math.floor(Math.random()*5000); money+=gain; return "🎁 臨時収入 +"+gain;},
 function(){let loss=1000+Math.floor(Math.random()*4000); money-=loss; return "💸 出費 -"+loss;},
@@ -91,7 +90,7 @@ function(){let lottery=Math.random(); if(lottery<0.2){money+=20000; return "🎰
 function(){let choice=Math.random(); if(choice<0.5){loan+=5000; money+=5000; return "🏦 銀行ローン +5000";} return "銀行は何もしなかった";}
 ];
 
-// --- ルーレット回す ---
+// ルーレット
 let spinning=false;
 function spinRoulette(){
   if(spinning) return;
@@ -109,36 +108,51 @@ function spinRoulette(){
   },duration+50);
 }
 
-// --- プレイヤー移動 ---
+// プレイヤー移動
 function movePlayer(steps){
   position+=steps;
   if(position>=size-1) position=size-1;
 
   // 分岐マス処理
   if(cells[position].type=="choice"){
-    let dir=Math.random()<0.5?1:2;
-    position+=dir;
-    if(position>=size-1) position=size-1;
+    showChoice([1,2]);
+  } else {
+    doEvent();
   }
+}
 
+// 分岐選択
+function showChoice(options){
+  const area=document.getElementById("choiceArea");
+  area.innerHTML="";
+  options.forEach((o)=>{
+    let btn=document.createElement("button");
+    btn.className="choiceBtn";
+    btn.textContent="➡ "+o+"マス";
+    btn.onclick=()=>{position+=o; if(position>=size-1) position=size-1; area.innerHTML=""; doEvent();}
+    area.appendChild(btn);
+  });
+}
+
+// イベント処理
+function doEvent(){
   let event=events[Math.floor(Math.random()*events.length)];
-  document.getElementById("log").textContent="🎡 "+steps+"マス進んだ → "+event();
+  document.getElementById("log").textContent="🎡 イベント → "+event();
   updatePlayer();
   updateInfo();
-
   if(position==size-1){
     setTimeout(()=>{ alert("🏁 ゴール！資産 ¥"+money+" 借金 ¥"+loan); location.reload(); },400);
   }
 }
 
-// --- プレイヤー表示 ---
+// プレイヤー表示
 function updatePlayer(){
   document.querySelectorAll(".player").forEach(p=>p.remove());
   let p=document.createElement("div"); p.className="player";
   document.getElementById("cell"+position).appendChild(p);
 }
 
-// --- 情報更新 ---
+// 情報更新
 function updateInfo(){
   document.getElementById("pos").textContent=position;
   document.getElementById("money").textContent=money;
