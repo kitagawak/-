@@ -2,138 +2,188 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>本格ミニパワプロ</title>
+<title>リアル人生ゲーム（2人対戦・マップ型）</title>
 <style>
-  body {
-    font-family: sans-serif;
-    text-align: center;
-    background: #cce7ff;
-    margin: 0;
-    padding: 0;
-  }
-  h1 { margin-top: 20px; }
-  #gameArea {
-    position: relative;
-    width: 300px;
-    height: 400px;
-    margin: 20px auto;
-    border: 2px solid #333;
-    background: #87ceeb;
-    overflow: hidden;
-    border-radius: 10px;
-  }
-  #ball {
-    position: absolute;
-    width: 20px;
-    height: 20px;
-    background: red;
-    border-radius: 50%;
-    bottom: 20px;
-    left: 140px;
-  }
-  #bat {
-    position: absolute;
-    width: 80px;
-    height: 20px;
-    background: brown;
-    bottom: 0;
-    left: 110px;
-    transform-origin: left center;
-  }
-  button {
-    padding: 10px 20px;
-    font-size: 16px;
-    margin: 10px;
-  }
-  #result {
-    font-size: 18px;
-    font-weight: bold;
-    margin-top: 10px;
-    height: 24px;
-  }
+body{font-family:sans-serif;text-align:center;background:#eaf6ff;}
+#board{width:1000px;margin:20px auto;display:grid;grid-template-columns:repeat(10,90px);gap:5px;}
+.cell{width:90px;height:90px;border:2px solid #555;display:flex;flex-direction:column;justify-content:center;align-items:center;font-size:11px;position:relative;}
+.normal{background:#fff;}
+.money{background:#a0e7a0;}
+.event{background:#9ad0ff;}
+.choice{background:#ffe08a;}
+.bad{background:#ff9a9a;}
+.goal{background:gold;}
+.player{width:20px;height:20px;border-radius:50%;position:absolute;bottom:3px;}
+#player1{background:red;}
+#player2{background:blue;}
+#roulette{width:200px;height:200px;border-radius:50%;border:8px solid #333;margin:20px auto;position:relative;}
+#pointer{width:6px;height:100px;background:red;position:absolute;left:97px;top:-50px;}
+button{padding:10px 25px;margin:10px;}
+#choiceBox{margin-top:10px;}
+.choiceBtn{padding:8px 15px;margin:5px;}
 </style>
 </head>
 <body>
-<h1>本格ミニパワプロ</h1>
-<div id="gameArea">
-  <div id="ball"></div>
-  <div id="bat"></div>
+
+<h1>🎡 リアル人生ゲーム（2人対戦・マップ型）</h1>
+
+<div>
+<span>プレイヤー: <span id="currentPlayer">赤</span></span><br>
+位置: <span id="pos">0</span>　
+お金: ¥<span id="money">10000</span>　
+職業: <span id="job">なし</span>
 </div>
-<button id="swingBtn">スイング！</button>
-<div id="result"></div>
+
+<div id="roulette">
+<div id="pointer"></div>
+</div>
+
+<button onclick="spin()">ルーレット</button>
+
+<div id="choiceBox"></div>
+<div id="log"></div>
+<div id="board"></div>
 
 <script>
-const ball = document.getElementById("ball");
-const bat = document.getElementById("bat");
-const swingBtn = document.getElementById("swingBtn");
-const resultDiv = document.getElementById("result");
+// ===== 基本 =====
+const board=document.getElementById("board");
+const size=80;
 
-const player = { power: 70 };
-let ballInterval;
-let ballX = 140, ballY = 350;
-let swingPressed = false;
+// 2人プレイヤー
+const players=[
+{name:"赤",pos:0,money:10000,job:"なし",salary:0,id:"player1"},
+{name:"青",pos:0,money:10000,job:"なし",salary:0,id:"player2"}
+];
+let current=0; // 0=赤, 1=青
 
-// 投球アニメーション（斜めに移動）
-function pitchBall() {
-  ballX = Math.random() * 200 + 50; // 横軌道をランダム
-  ballY = 350;
-  swingPressed = false;
-  resultDiv.textContent = "";
-  ball.style.left = ballX + "px";
-  ball.style.bottom = ballY + "px";
+// ===== マップ型ルート =====
+const routeMap={};
+for(let i=0;i<size;i++) routeMap[i]=[i+1];
 
-  ballInterval = setInterval(() => {
-    ballY -= 5; // 上から下に移動
-    // 少し横に揺らす軌道
-    ballX += Math.sin(ballY / 30) * 2;
-    ball.style.left = ballX + "px";
-    ball.style.bottom = ballY + "px";
+// 分岐マス
+routeMap[10]=[11,15];
+routeMap[30]=[31,35];
+routeMap[50]=[51,55];
+routeMap[70]=[71,75];
 
-    // ボールが下まで行ったらアウト
-    if (ballY <= 20) {
-      clearInterval(ballInterval);
-      if (!swingPressed) {
-        resultDiv.textContent = "アウト…😢";
-      }
-    }
-  }, 20);
+// ===== マス種類 =====
+function getType(i){
+if(i==79) return "goal";
+if([10,30,50,70].includes(i)) return "choice";
+if(i%7==0) return "money";
+if(i%5==0) return "event";
+if(i%9==0) return "bad";
+return "normal";
 }
 
-// スイング判定
-function swingBat() {
-  swingPressed = true;
-  let angle = 0;
-  const swingInterval = setInterval(() => {
-    angle += 20;
-    bat.style.transform = `rotate(${angle}deg)`;
-    if (angle >= 90) {
-      clearInterval(swingInterval);
-      bat.style.transform = "rotate(0deg)";
+// ===== マス生成 =====
+for(let i=0;i<size;i++){
+let type=getType(i);
+let cell=document.createElement("div");
+cell.className="cell "+type;
+cell.id="cell"+i;
+let icon="⬜";
+if(type=="money") icon="💰";
+if(type=="event") icon="🎲";
+if(type=="choice") icon="🛣";
+if(type=="bad") icon="💸";
+if(type=="goal") icon="🏁";
+cell.innerHTML=icon+"<br>"+i;
+board.appendChild(cell);
+}
+updatePlayer();
 
-      // ヒット判定（ボールのY座標が150～220の範囲なら当たり判定）
-      if (ballY >= 150 && ballY <= 220) {
-        const hitChance = player.power + Math.floor(Math.random() * 50);
-        if (hitChance > 80) {
-          resultDiv.textContent = "ホームラン！🔥";
-        } else {
-          resultDiv.textContent = "ヒット！⚾";
-        }
-      } else {
-        resultDiv.textContent = "空振り…😢";
-      }
-
-      clearInterval(ballInterval); // ボールを止める
-    }
-  }, 30);
+// ===== ルーレット =====
+let spinning=false;
+function spin(){
+if(spinning) return;
+spinning=true;
+let pointer=document.getElementById("pointer");
+let steps=Math.floor(Math.random()*6)+1;
+let total=360*4 + steps*60;
+pointer.style.transition="transform 2s ease-out";
+pointer.style.transform="rotate("+total+"deg)";
+setTimeout(()=>{spinning=false; move(steps);},2000);
 }
 
-// ボタン押したら投球＋スイング判定
-swingBtn.addEventListener("click", () => {
-  swingBat();
+// ===== 移動 =====
+function move(steps){
+let player=players[current];
+let next=player.pos+steps;
+if(next>=79) next=79;
+
+// 分岐
+if(routeMap[next].length>1){
+showChoice(routeMap[next]);
+} else{
+player.pos=routeMap[next][0];
+afterMove();
+}
+}
+
+// ===== 分岐選択 =====
+function showChoice(options){
+let box=document.getElementById("choiceBox");
+box.innerHTML="<b>どちらに進む？</b><br>";
+options.forEach(o=>{
+let btn=document.createElement("button");
+btn.className="choiceBtn";
+btn.textContent="➡ "+o+"へ";
+btn.onclick=()=>{
+players[current].pos=o;
+box.innerHTML="";
+afterMove();
+};
+box.appendChild(btn);
 });
+}
 
-// 自動で投球スタート
-pitchBall();
+// ===== イベント =====
+function afterMove(){
+let player=players[current];
+let type=getType(player.pos);
+let text="";
+if(type=="money"){player.money+=3000;text="💰 ボーナス +3000";}
+else if(type=="bad"){player.money-=2000;text="💸 出費 -2000";}
+else if(type=="event"){
+if(player.job=="なし"){player.job="会社員";player.salary=3000;text="💼 就職した！";}
+else{player.money+=player.salary;text="💰 給料 +"+player.salary;}
+}
+else if(type=="choice"){text="分岐を通過";}
+else if(type=="goal"){text="🏁 ゴール！";alert(player.name+" の勝利！資産 ¥"+player.money); location.reload();}
+else{text="のんびり進んだ";}
+
+document.getElementById("log").textContent=player.name+" → "+text;
+
+updatePlayer();
+updateInfo();
+switchPlayer();
+}
+
+// ===== プレイヤー切替 =====
+function switchPlayer(){
+current=(current+1)%2;
+document.getElementById("currentPlayer").textContent=players[current].name;
+}
+
+// ===== 表示更新 =====
+function updatePlayer(){
+document.querySelectorAll(".player").forEach(p=>p.remove());
+players.forEach(p=>{
+let div=document.createElement("div");
+div.className="player";
+div.id=p.id;
+document.getElementById("cell"+p.pos).appendChild(div);
+});
+}
+
+function updateInfo(){
+let player=players[current];
+document.getElementById("pos").textContent=player.pos;
+document.getElementById("money").textContent=player.money;
+document.getElementById("job").textContent=player.job;
+}
 </script>
+
 </body>
 </html>
