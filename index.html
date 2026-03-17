@@ -2,91 +2,33 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>リアル人生ゲーム（完全版）</title>
-
+<title>リアル人生ゲーム（2人対戦・マップ型）</title>
 <style>
-body{
-font-family:sans-serif;
-text-align:center;
-background:#eaf6ff;
-}
-
-#board{
-width:1000px;
-margin:20px auto;
-display:grid;
-grid-template-columns:repeat(10,90px);
-gap:5px;
-}
-
-.cell{
-width:90px;
-height:90px;
-border:2px solid #555;
-display:flex;
-flex-direction:column;
-justify-content:center;
-align-items:center;
-font-size:11px;
-position:relative;
-}
-
+body{font-family:sans-serif;text-align:center;background:#eaf6ff;}
+#board{width:1000px;margin:20px auto;display:grid;grid-template-columns:repeat(10,90px);gap:5px;}
+.cell{width:90px;height:90px;border:2px solid #555;display:flex;flex-direction:column;justify-content:center;align-items:center;font-size:11px;position:relative;}
 .normal{background:#fff;}
 .money{background:#a0e7a0;}
 .event{background:#9ad0ff;}
 .choice{background:#ffe08a;}
 .bad{background:#ff9a9a;}
 .goal{background:gold;}
-
-.player{
-width:20px;
-height:20px;
-background:red;
-border-radius:50%;
-position:absolute;
-bottom:3px;
-}
-
-#roulette{
-width:200px;
-height:200px;
-border-radius:50%;
-border:8px solid #333;
-margin:20px auto;
-position:relative;
-}
-
-#pointer{
-width:6px;
-height:100px;
-background:red;
-position:absolute;
-left:97px;
-top:-50px;
-}
-
-button{
-padding:10px 25px;
-margin:10px;
-}
-
-#choiceBox{
-margin-top:10px;
-}
-
-.choiceBtn{
-padding:8px 15px;
-margin:5px;
-}
-
+.player{width:20px;height:20px;border-radius:50%;position:absolute;bottom:3px;}
+#player1{background:red;}
+#player2{background:blue;}
+#roulette{width:200px;height:200px;border-radius:50%;border:8px solid #333;margin:20px auto;position:relative;}
+#pointer{width:6px;height:100px;background:red;position:absolute;left:97px;top:-50px;}
+button{padding:10px 25px;margin:10px;}
+#choiceBox{margin-top:10px;}
+.choiceBtn{padding:8px 15px;margin:5px;}
 </style>
 </head>
-
 <body>
 
-<h1>🎡 リアル人生ゲーム（完全版）</h1>
+<h1>🎡 リアル人生ゲーム（2人対戦・マップ型）</h1>
 
 <div>
+<span>プレイヤー: <span id="currentPlayer">赤</span></span><br>
 位置: <span id="pos">0</span>　
 お金: ¥<span id="money">10000</span>　
 職業: <span id="job">なし</span>
@@ -100,31 +42,29 @@ margin:5px;
 
 <div id="choiceBox"></div>
 <div id="log"></div>
-
 <div id="board"></div>
 
 <script>
-
 // ===== 基本 =====
-const board = document.getElementById("board");
-const size = 80;
+const board=document.getElementById("board");
+const size=80;
 
-let pos = 0;
-let money = 10000;
-let job = "なし";
-let salary = 0;
+// 2人プレイヤー
+const players=[
+{name:"赤",pos:0,money:10000,job:"なし",salary:0,id:"player1"},
+{name:"青",pos:0,money:10000,job:"なし",salary:0,id:"player2"}
+];
+let current=0; // 0=赤, 1=青
 
-// ===== マス構造（分岐あり） =====
-const routeMap = {};
-for(let i=0;i<size;i++){
-routeMap[i] = [i+1];
-}
+// ===== マップ型ルート =====
+const routeMap={};
+for(let i=0;i<size;i++) routeMap[i]=[i+1];
 
-// ★ 本物の分岐（ルートが分かれる）
-routeMap[10] = [11,15];
-routeMap[30] = [31,35];
-routeMap[50] = [51,55];
-routeMap[70] = [71,75];
+// 分岐マス
+routeMap[10]=[11,15];
+routeMap[30]=[31,35];
+routeMap[50]=[51,55];
+routeMap[70]=[71,75];
 
 // ===== マス種類 =====
 function getType(i){
@@ -138,145 +78,111 @@ return "normal";
 
 // ===== マス生成 =====
 for(let i=0;i<size;i++){
-
-let type = getType(i);
-
-let cell = document.createElement("div");
-cell.className = "cell "+type;
-cell.id = "cell"+i;
-
-let icon = "⬜";
-
+let type=getType(i);
+let cell=document.createElement("div");
+cell.className="cell "+type;
+cell.id="cell"+i;
+let icon="⬜";
 if(type=="money") icon="💰";
 if(type=="event") icon="🎲";
 if(type=="choice") icon="🛣";
 if(type=="bad") icon="💸";
 if(type=="goal") icon="🏁";
-
-cell.innerHTML = icon+"<br>"+i;
-
+cell.innerHTML=icon+"<br>"+i;
 board.appendChild(cell);
 }
-
 updatePlayer();
 
 // ===== ルーレット =====
 let spinning=false;
-
 function spin(){
-
 if(spinning) return;
 spinning=true;
-
 let pointer=document.getElementById("pointer");
-
-let steps = Math.floor(Math.random()*6)+1;
-let total = 360*4 + steps*60;
-
+let steps=Math.floor(Math.random()*6)+1;
+let total=360*4 + steps*60;
 pointer.style.transition="transform 2s ease-out";
 pointer.style.transform="rotate("+total+"deg)";
-
-setTimeout(()=>{
-spinning=false;
-move(steps);
-},2000);
-
+setTimeout(()=>{spinning=false; move(steps);},2000);
 }
 
 // ===== 移動 =====
-function move(step){
-
-let next = pos + step;
-
+function move(steps){
+let player=players[current];
+let next=player.pos+steps;
 if(next>=79) next=79;
 
-// 分岐チェック
+// 分岐
 if(routeMap[next].length>1){
 showChoice(routeMap[next]);
-} else {
-pos = routeMap[next][0];
+} else{
+player.pos=routeMap[next][0];
 afterMove();
 }
-
 }
 
-// ===== 分岐UI =====
+// ===== 分岐選択 =====
 function showChoice(options){
-
-let box = document.getElementById("choiceBox");
-box.innerHTML = "<b>どっちに進む？</b><br>";
-
+let box=document.getElementById("choiceBox");
+box.innerHTML="<b>どちらに進む？</b><br>";
 options.forEach(o=>{
 let btn=document.createElement("button");
 btn.className="choiceBtn";
 btn.textContent="➡ "+o+"へ";
 btn.onclick=()=>{
-pos=o;
+players[current].pos=o;
 box.innerHTML="";
 afterMove();
 };
 box.appendChild(btn);
 });
-
 }
 
 // ===== イベント =====
 function afterMove(){
-
-let type = getType(pos);
+let player=players[current];
+let type=getType(player.pos);
 let text="";
-
-if(type=="money"){
-money+=3000;
-text="💰 ボーナス +3000";
-}
-else if(type=="bad"){
-money-=2000;
-text="💸 出費 -2000";
-}
+if(type=="money"){player.money+=3000;text="💰 ボーナス +3000";}
+else if(type=="bad"){player.money-=2000;text="💸 出費 -2000";}
 else if(type=="event"){
-if(job=="なし"){
-job="会社員";
-salary=3000;
-text="💼 就職した！";
-}else{
-money+=salary;
-text="💰 給料 +"+salary;
+if(player.job=="なし"){player.job="会社員";player.salary=3000;text="💼 就職した！";}
+else{player.money+=player.salary;text="💰 給料 +"+player.salary;}
 }
-}
-else if(type=="choice"){
-text="分岐を通過";
-}
-else if(type=="goal"){
-text="🏁 ゴール！";
-alert("資産 ¥"+money);
-location.reload();
-}
-else{
-text="のんびり進んだ";
-}
+else if(type=="choice"){text="分岐を通過";}
+else if(type=="goal"){text="🏁 ゴール！";alert(player.name+" の勝利！資産 ¥"+player.money); location.reload();}
+else{text="のんびり進んだ";}
 
-document.getElementById("log").textContent=text;
+document.getElementById("log").textContent=player.name+" → "+text;
 
 updatePlayer();
 updateInfo();
+switchPlayer();
+}
 
+// ===== プレイヤー切替 =====
+function switchPlayer(){
+current=(current+1)%2;
+document.getElementById("currentPlayer").textContent=players[current].name;
 }
 
 // ===== 表示更新 =====
 function updatePlayer(){
 document.querySelectorAll(".player").forEach(p=>p.remove());
-let p=document.createElement("div");
-p.className="player";
-document.getElementById("cell"+pos).appendChild(p);
+players.forEach(p=>{
+let div=document.createElement("div");
+div.className="player";
+div.id=p.id;
+document.getElementById("cell"+p.pos).appendChild(div);
+});
 }
 
 function updateInfo(){
-document.getElementById("pos").textContent=pos;
-document.getElementById("money").textContent=money;
-document.getElementById("job").textContent=job;
+let player=players[current];
+document.getElementById("pos").textContent=player.pos;
+document.getElementById("money").textContent=player.money;
+document.getElementById("job").textContent=player.job;
 }
-
 </script>
 
 </body>
