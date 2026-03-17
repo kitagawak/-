@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>ブラウザ野球ゲーム</title>
+<title>パワプロ風ブラウザ野球</title>
 <style>
 body{font-family:sans-serif;text-align:center;background:#87ceeb;color:#000;}
 #field{width:600px;height:600px;background:#228B22;margin:20px auto;position:relative;border-radius:50%;}
@@ -14,7 +14,7 @@ button{padding:10px 20px;margin:10px;}
 </style>
 </head>
 <body>
-<h1>⚾ ブラウザ野球ゲーム</h1>
+<h1>⚾ パワプロ風野球ゲーム</h1>
 <div id="field">
 <div id="pitcher"></div>
 <div id="ball"></div>
@@ -47,17 +47,16 @@ document.getElementById("pitchBtn").onclick=()=>{
     document.getElementById("swingBtn").disabled=false;
     swingAllowed=true;
     log.textContent="⚾ ボールが来る！タイミングでスイング！";
-    // ランダムに球速と変化
-    let ballSpeed = 2000 + Math.random()*1000; // ms
+
+    let ballSpeed = 1500 + Math.random()*1000; // ms
     let ballCurve = (Math.random()-0.5)*100; // 左右変化
     ball.style.transition = `top ${ballSpeed}ms linear, left ${ballSpeed}ms linear`;
     setTimeout(()=>{
         ball.style.top="500px";
         ball.style.left=292+ballCurve+"px";
-        // 打撃判定
         setTimeout(()=>{
-            if(swingAllowed){ // バッタースイングしてないとストライク
-                log.textContent="⚾ 空振り！ストライク！";
+            if(swingAllowed){ // 空振り
+                log.textContent="⚾ 空振り！アウト！";
                 outs++;
                 updateInfo();
                 nextPlay();
@@ -91,11 +90,8 @@ function advanceRunners(hit){
     for(let i=2;i>=0;i--){
         if(bases[i]){
             let nextBase=i+hit;
-            if(nextBase>2){
-                score++;
-            }else{
-                bases[nextBase]=1;
-            }
+            if(nextBase>2){ score++; }
+            else{ bases[nextBase]=1; }
             bases[i]=0;
         }
     }
@@ -133,3 +129,4 @@ function updateInfo(){
 </script>
 </body>
 </html>
+🎯 このゲームの特徴
