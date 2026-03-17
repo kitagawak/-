@@ -2,297 +2,139 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>リアル人生ゲーム</title>
-
+<title>リアル人生ゲーム（ルーレット）</title>
 <style>
-
-body{
-font-family:sans-serif;
-text-align:center;
-background:#f4f4f4;
-}
-
-#board{
-width:1000px;
-margin:20px auto;
-display:grid;
-grid-template-columns:repeat(10,90px);
-gap:5px;
-}
-
-.cell{
-width:90px;
-height:90px;
-background:#ddd;
-border:2px solid #888;
-display:flex;
-align-items:center;
-justify-content:center;
-font-size:12px;
-position:relative;
-}
-
-.goal{
-background:gold;
-}
-
-.player{
-width:24px;
-height:24px;
-background:red;
-border-radius:50%;
-position:absolute;
-bottom:4px;
-}
-
-#info{
-font-size:18px;
-margin-top:10px;
-}
-
-button{
-padding:12px 30px;
-font-size:18px;
-margin-top:10px;
-}
-
-#log{
-margin-top:15px;
-font-weight:bold;
-}
-
+body{font-family:sans-serif;text-align:center;background:#f4f4f4;}
+h1{margin-top:20px;}
+#board{width:1000px;margin:20px auto;display:grid;grid-template-columns:repeat(10,90px);gap:5px;}
+.cell{width:90px;height:90px;background:#ddd;border:2px solid #888;display:flex;align-items:center;justify-content:center;font-size:12px;position:relative;}
+.goal{background:gold;}
+.choice{background:#ffec99;}
+.player{width:24px;height:24px;background:red;border-radius:50%;position:absolute;bottom:4px;}
+#info{font-size:16px;margin-top:10px;}
+button{padding:12px 30px;font-size:18px;margin-top:10px;cursor:pointer;}
+#log{margin-top:15px;font-weight:bold;}
+#roulette{margin-top:20px;width:200px;height:200px;border-radius:50%;border:8px solid #444;position:relative;margin-left:auto;margin-right:auto;}
+#pointer{width:10px;height:100px;background:red;position:absolute;top:-50px;left:95px;}
+#spinBtn{margin-top:10px;padding:10px 30px;font-size:16px;}
 </style>
 </head>
-
 <body>
 
-<h1>🎲 リアル人生ゲーム</h1>
+<h1>🎡 リアル人生ゲーム（ルーレット版）</h1>
 
 <div id="info">
-
 位置: <span id="pos">0</span><br>
-
 お金: ¥<span id="money">10000</span><br>
-
 職業: <span id="job">なし</span><br>
-
 給料: ¥<span id="salary">0</span><br>
-
 結婚: <span id="married">していない</span><br>
-
 子供: <span id="kids">0</span><br>
-
-家: <span id="house">なし</span>
-
+家: <span id="house">なし</span><br>
+車: <span id="car">なし</span><br>
+借金: ¥<span id="loan">0</span>
 </div>
 
-<button onclick="rollDice()">サイコロを振る</button>
+<div id="roulette">
+<div id="pointer"></div>
+</div>
+<button id="spinBtn" onclick="spinRoulette()">ルーレットを回す</button>
 
 <div id="log"></div>
 
 <div id="board"></div>
 
 <script>
-
+// --- 基本設定 ---
 const board=document.getElementById("board")
-
 const size=80
-
-let position=0
-let money=10000
-let job="なし"
-let salary=0
-let married=false
-let kids=0
-let house=false
+let position=0,money=10000,job="なし",salary=0,married=false,kids=0,house=false,car=false,loan=0;
 
 for(let i=0;i<size;i++){
-
-let cell=document.createElement("div")
-cell.className="cell"
-cell.id="cell"+i
-
-if(i==size-1){
-cell.classList.add("goal")
-cell.textContent="GOAL"
+  let cell=document.createElement("div");
+  cell.className="cell";
+  cell.id="cell"+i;
+  if(i==size-1){cell.classList.add("goal");cell.textContent="GOAL";}
+  board.appendChild(cell);
 }
-else{
-cell.textContent=i
-}
+updatePlayer();
 
-board.appendChild(cell)
-
-}
-
-updatePlayer()
-
+// --- 職業 ---
 const jobs=[
-
 {name:"会社員",salary:3000},
 {name:"医者",salary:8000},
 {name:"エンジニア",salary:5000},
 {name:"スポーツ選手",salary:10000},
 {name:"YouTuber",salary:7000}
+];
 
-]
-
+// --- イベント ---
 const events=[
+function(){if(job==="なし"){let j=jobs[Math.floor(Math.random()*jobs.length)];job=j.name; salary=j.salary; return "💼 就職した → "+job+" (給料 "+salary+")";} return "今日は平和";},
+function(){money+=salary; return "💰 給料日 +"+salary;},
+function(){if(!married){married=true; return "💍 結婚した！";} return "平和な一日";},
+function(){if(married){kids++; return "👶 子供が生まれた！";} return "特に何もなし";},
+function(){if(!house && money>=20000){money-=20000; house=true; return "🏠 家を購入 -20000";} return "家を見ただけ";},
+function(){if(!car && money>=10000){money-=10000; car=true; return "🚗 車を購入 -10000";} return "車を見るだけ";},
+function(){let gain=2000+Math.floor(Math.random()*5000); money+=gain; return "🎁 臨時収入 +"+gain;},
+function(){let loss=1000+Math.floor(Math.random()*4000); money-=loss; return "💸 出費 -"+loss;},
+function(){let lottery=Math.random(); if(lottery<0.2){money+=20000; return "🎰 宝くじ大当たり +20000";} return "宝くじ外れ";},
+function(){let choice=Math.random(); if(choice<0.5){loan+=5000; money+=5000; return "🏦 銀行ローン +5000";} return "銀行は何もしなかった";}
+];
 
-function(){
-
-let j=jobs[Math.floor(Math.random()*jobs.length)]
-
-job=j.name
-salary=j.salary
-
-return "💼 就職した → "+job+" (給料 "+salary+")"
-
-},
-
-function(){
-
-money+=salary
-
-return "💰 給料日！ +"+salary
-
-},
-
-function(){
-
-if(!married){
-
-married=true
-return "💍 結婚した！"
-
+// --- ルーレット回す ---
+let spinning=false;
+function spinRoulette(){
+  if(spinning) return;
+  spinning=true;
+  const pointer=document.getElementById("pointer");
+  let spins=3+Math.floor(Math.random()*3); // 3~5回転
+  let steps=1+Math.floor(Math.random()*6); // 最終進むマス数
+  let angle=0;
+  let total=spins*360 + steps*(360/6); // 6分割
+  let duration=2000;
+  pointer.style.transition=`transform ${duration}ms ease-out`;
+  pointer.style.transform=`rotate(${total}deg)`;
+  setTimeout(()=>{
+    spinning=false;
+    movePlayer(steps);
+  },duration+50);
 }
 
-return "特に何もなかった"
-
-},
-
-function(){
-
-if(married){
-
-kids++
-return "👶 子供が生まれた！"
-
+// --- プレイヤー移動 ---
+function movePlayer(steps){
+  position+=steps;
+  if(position>=size-1) position=size-1;
+  // ルート分岐
+  if([10,30,50,70].includes(position)){ position+=Math.random()<0.5?1:2; if(position>=size-1) position=size-1; }
+  let event=events[Math.floor(Math.random()*events.length)];
+  document.getElementById("log").textContent="🎡 "+steps+"マス進んだ → "+event();
+  updatePlayer();
+  updateInfo();
+  if(position==size-1){
+    setTimeout(()=>{ alert("🏁 ゴール！資産 ¥"+money+" 借金 ¥"+loan); location.reload(); },400);
+  }
 }
 
-return "平和な一日"
-
-},
-
-function(){
-
-if(!house && money>=20000){
-
-money-=20000
-house=true
-
-return "🏠 家を購入 -20000"
-
-}
-
-return "家を見るだけだった"
-
-},
-
-function(){
-
-let gain=2000+Math.floor(Math.random()*5000)
-
-money+=gain
-
-return "🎁 臨時収入 +"+gain
-
-},
-
-function(){
-
-let loss=1000+Math.floor(Math.random()*4000)
-
-money-=loss
-
-return "💸 出費 -"+loss
-
-},
-
-function(){
-
-let lottery=Math.random()
-
-if(lottery<0.2){
-
-money+=20000
-return "🎰 宝くじ大当たり +20000"
-
-}
-
-return "宝くじは外れ"
-
-}
-
-]
-
-function rollDice(){
-
-let dice=Math.floor(Math.random()*6)+1
-
-position+=dice
-
-if(position>=size-1){
-position=size-1
-}
-
-let event=events[Math.floor(Math.random()*events.length)]
-
-let text="🎲 "+dice+"マス進んだ → "+event()
-
-updatePlayer()
-
-updateInfo()
-
-document.getElementById("log").textContent=text
-
-if(position==size-1){
-
-setTimeout(()=>{
-
-alert("ゴール！資産 ¥"+money)
-
-location.reload()
-
-},400)
-
-}
-
-}
-
+// --- プレイヤー表示 ---
 function updatePlayer(){
-
-document.querySelectorAll(".player").forEach(p=>p.remove())
-
-let p=document.createElement("div")
-
-p.className="player"
-
-document.getElementById("cell"+position).appendChild(p)
-
+  document.querySelectorAll(".player").forEach(p=>p.remove());
+  let p=document.createElement("div"); p.className="player";
+  document.getElementById("cell"+position).appendChild(p);
 }
 
+// --- 情報更新 ---
 function updateInfo(){
-
-document.getElementById("pos").textContent=position
-document.getElementById("money").textContent=money
-document.getElementById("job").textContent=job
-document.getElementById("salary").textContent=salary
-document.getElementById("married").textContent=married?"している":"していない"
-document.getElementById("kids").textContent=kids
-document.getElementById("house").textContent=house?"あり":"なし"
-
+  document.getElementById("pos").textContent=position;
+  document.getElementById("money").textContent=money;
+  document.getElementById("job").textContent=job;
+  document.getElementById("salary").textContent=salary;
+  document.getElementById("married").textContent=married?"している":"していない";
+  document.getElementById("kids").textContent=kids;
+  document.getElementById("house").textContent=house?"あり":"なし";
+  document.getElementById("car").textContent=car?"あり":"なし";
+  document.getElementById("loan").textContent=loan;
 }
-
 </script>
 
 </body>
